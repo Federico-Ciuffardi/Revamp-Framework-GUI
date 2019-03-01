@@ -54,12 +54,15 @@ import com.github.federico_ciuffardi.util.Prefs;
  */
 
 class MainFrame extends JFrame{
-	public static final String root = (new File("")).getAbsolutePath();
+	private static final long serialVersionUID = 1L;
+	private static MainFrame instance = null;
+	
+	private static final String root = (new File("")).getAbsolutePath();
 	private static String revampFramework;
 	private static String revampFrameworkPath;
 	private static Path projRoot;
-	private static final long serialVersionUID = 1L;
-	private static MainFrame instance = null;
+
+
 	
 	public static void main(String[] args) {
 		//find the correct version of the revamp-framework
@@ -72,6 +75,7 @@ class MainFrame extends JFrame{
 				break;
 			}
 		}
+		//initializing theme
 		Prefs prefs = new Prefs("revamp-framework");
 		prefs.setDefault("theme", UIManager.getSystemLookAndFeelClassName());
 		try {
@@ -95,7 +99,7 @@ class MainFrame extends JFrame{
 	
 	private MainFrame() {
 		setContentPane(new JDesktopPane());
-		setTitle("Revamp Framework");
+		setTitle(revampFramework.substring(0,revampFramework.length()-4));
 		setBounds(100, 100, 600, 600);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
