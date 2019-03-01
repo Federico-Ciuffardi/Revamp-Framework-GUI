@@ -42,6 +42,7 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.awt.event.ActionEvent;
@@ -53,9 +54,10 @@ import com.github.federico_ciuffardi.util.Prefs;
  */
 
 class MainFrame extends JFrame{
+	public static final String root = (new File("")).getAbsolutePath();
 	private static String revampFramework;
-	private Path projRoot;
-	private static String rfprojName;
+	private static String revampFrameworkPath;
+	private static Path projRoot;
 	private static final long serialVersionUID = 1L;
 	private static MainFrame instance = null;
 	
@@ -66,6 +68,7 @@ class MainFrame extends JFrame{
 		for (File f: listOfFiles) {
 			if(f.getName().matches("revamp-framework-.*")) {
 				revampFramework = f.getName();
+				revampFrameworkPath = root+"/libraries/"+ revampFramework;
 				break;
 			}
 		}
@@ -99,6 +102,44 @@ class MainFrame extends JFrame{
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 		
+		JMenu mnRun = new JMenu("Run");
+		menuBar.add(mnRun);
+		
+		JMenuItem mntmRun = new JMenuItem("Run last");
+		mntmRun.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					Runtime.getRuntime().exec("java -jar ./libraries/"+ revampFramework);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
+		JMenuItem mntmRunFromJar = new JMenuItem("Run From jar");
+		mnRun.add(mntmRunFromJar);
+		mnRun.add(mntmRun);
+		
+		JMenuItem mntmRun_1 = new JMenuItem("Run...");
+		mntmRun_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				//compiles creates a jar and executes the framework looking for the initial room
+				String s = JOptionPane.showInputDialog("inital room");
+				String javas = searchAndCompile(projRoot.toAbsolutePath().toString());
+				String cmd1 = "javac -classpath "+revampFrameworkPath +" -d "+projRoot.toAbsolutePath()+"/bin"+javas;
+				String cmd2 = "jar cvf "+projRoot.getFileName().toString()+".jar -C "+projRoot.toAbsolutePath()+"/bin .";
+				String cmd3 = "java -jar "+revampFrameworkPath +" "+root+"/"+projRoot.getFileName()+".jar "+s;
+				try {
+					runCommand(cmd1);
+					runCommand(cmd2);
+					runCommand(cmd3);	
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		mnRun.add(mntmRun_1);
+		
 		JMenu mnProject = new JMenu("Project");
 		menuBar.add(mnProject);
 		
@@ -112,7 +153,7 @@ class MainFrame extends JFrame{
                 int returnVal = chooser.showOpenDialog(getParent());
                 if(returnVal == JFileChooser.APPROVE_OPTION) {
     				 try {
-    					 if(!Files.exists(Paths.get(chooser.getSelectedFile().getAbsolutePath()))) {
+    					 if(!existProject(Paths.get(chooser.getSelectedFile().getAbsolutePath()).getParent().toString())) {
     						 Path file = Paths.get(chooser.getSelectedFile().getAbsolutePath()+".rfproj");
 	    					 projRoot = file.getParent();
 	    					 List<String> lines = Arrays.asList("");
@@ -149,42 +190,6 @@ class MainFrame extends JFrame{
 		});
 		mnProject.add(mntmOpen);
 		
-		JMenu mnRun = new JMenu("Run");
-		menuBar.add(mnRun);
-		
-		JMenuItem mntmRun = new JMenuItem("Run last");
-		mntmRun.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				try {
-					Runtime.getRuntime().exec("java -jar ./libraries/"+ revampFramework);
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		});
-		mnRun.add(mntmRun);
-		
-		JMenuItem mntmRun_1 = new JMenuItem("Run...");
-		mntmRun_1.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				String s = JOptionPane.showInputDialog("inital room");
-				String cmd1 = "/usr/bin/javac -classpath "+(new File("")).getAbsolutePath()+"/libraries/"+ revampFramework +" -d "+projRoot.toAbsolutePath().toString()+"/bin/  "+projRoot.toAbsolutePath().toString()+"/src/*/*.java";
-				String cmd2 = "/usr/bin/jar cvf "+projRoot.getFileName().toString()+".jar -C "+projRoot.toAbsolutePath().toString()+"/bin .";
-				String cmd3 = "/usr/bin/java -jar "+(new File("")).getAbsolutePath()+"/libraries/"+ revampFramework +" ~/"+projRoot.getFileName().toString()+".jar "+s;
-				//searchAndCompile(projRoot.toAbsolutePath().toString());
-				try {
-					
-					runCommand("javac -classpath "+(new File("")).getAbsolutePath()+"/libraries/"+ revampFramework +" -d "+projRoot.toAbsolutePath().toString()+"/bin "+projRoot.toAbsolutePath().toString()+"/src/*/*");
-					runCommand(cmd2);
-					runCommand(cmd3);		
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-		});
-		mnRun.add(mntmRun_1);
-		
 		JMenu mnHelp = new JMenu("Help");
 		menuBar.add(mnHelp);
 		
@@ -206,23 +211,21 @@ class MainFrame extends JFrame{
 		setExtendedState(this.getExtendedState()|JFrame.MAXIMIZED_BOTH );
 		setVisible(true);
 	}
-	private void searchAndCompile(String path) {
+	private String searchAndCompile(String path) {
+		String javas = "";
 		File file = new File(path);
 		if(!file.isDirectory()) {
 			if(file.getName().matches(".*\\.java")) {
-				try {
-					runCommand("javac -classpath "+(new File("")).getAbsolutePath()+"/libraries/"+ revampFramework +" -d "+projRoot.toAbsolutePath().toString()+"/bin "+file.getAbsolutePath());
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				javas= " "+javas+file.getAbsolutePath();
 			}
 		}else {
 			File[] listOfFiles = file.listFiles();
 			for (File f: listOfFiles) {
-				searchAndCompile(f.getAbsolutePath());
+				String newJavas = searchAndCompile(f.getAbsolutePath());
+				javas = javas + newJavas;
 			}
 		}
+		return javas;
 	}
 	private void runCommand(String cmd) throws IOException {
 		System.out.println(">"+cmd);
@@ -247,5 +250,18 @@ class MainFrame extends JFrame{
 		while ((ss = stdError.readLine()) != null) {
 		    System.out.println(ss);
 		}
+	}
+	private boolean existProject(String path) {
+		boolean ret = false;
+		File file = new File(path);
+		if(!file.isDirectory()) {
+			throw new IllegalArgumentException("must be a directory");
+		}else {
+			File[] listOfFiles = file.listFiles();
+			for (File f: listOfFiles) {
+				ret = ret || f.getName().endsWith(".rfproj");
+			}
+		}
+		return ret;
 	}
 }
